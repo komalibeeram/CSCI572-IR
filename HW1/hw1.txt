@@ -1,7 +1,7 @@
 Baseline search engine: Google
 Assigned search engine for comparison: DuckDuckGo
  
-Average percentage overlap: 14.2%
-Average spearman coefficient: -6.137071428571428
+Average percentage overlap: 16.299999999999997%
+Average spearman coefficient: -5.290107142857142
 
 The results show that DuckDuckGo and Google rank search results very differently. From the above average percent overlap and average Spearman coefficient, it can be clearly seen that the similarity between the search results obtained by DuckDuckGo and Google's results is very low. The average percentage overlap indicate that most of the results from DuckDuckGo do not appear in Google's top rankings possibly due to the search engine algorithms and their page rankings system and the huge database google has. The negative average spearman coefficient also say that the rankings are more often in reverse order when compared to Google's.

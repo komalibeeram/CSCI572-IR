@@ -34,6 +34,7 @@ class SearchEngine:
         url = SEARCHING_URL + temp_url
         soup = BeautifulSoup(requests.get(url, headers=USER_AGENT).text,"html.parser")
         new_results = SearchEngine.scrape_search_result(soup)
+        print("Parsed ", query)
         return new_results
     
     @staticmethod
@@ -50,6 +51,16 @@ class SearchEngine:
             results.append(link)
         return results
 
+def check_similar_results(result):
+    if result.startswith("http://"):
+        result = result[7:]
+    elif result.startswith("https://"):
+        result = result[8:]
+    if result.startswith("www."):
+        result = result[4:]
+    if result.endswith("/"):
+        result = result[:-1]
+    return result
 
 def calculate_overlap_and_ranks():
 
@@ -66,7 +77,7 @@ def calculate_overlap_and_ranks():
         search_engine_rank = []
         for i in range(0, len(google_engine_response)):
             for j in range(0, len(search_engine_response)):
-                if google_engine_response[i] == search_engine_response[j]:
+                if check_similar_results(google_engine_response[i]) == check_similar_results(search_engine_response[j]):
                     overlap += 1
                     google_rank.append(i)
                     search_engine_rank.append(j)
@@ -127,7 +138,7 @@ def calculate_spearman_coefficient(overlaps_ranks_data):
 # reading the query list dataset
 with open(QUERIES_PATH) as file:
     query_list = [line.rstrip() for line in file]
-
+print("Started parsing queries...")
 response_json = {}
 for query in query_list:
     result = SearchEngine.search(query)
@@ -137,7 +148,7 @@ for query in query_list:
 # to write the respon as a json file
 with open(OUTPUT_JSON, "w") as file:
     json.dump(response_json, file)
-
+print("Generated json file ...")
 # to calculate overlap and ranks
 overlaps_ranks_data = calculate_overlap_and_ranks()
 
@@ -151,7 +162,8 @@ with open(OUTPUT_CSV, "w") as file:
     for d in data:
         write.writerow(
             [d["queries"], d["overlapping_results"], d["percentage_overlap"], d["spearman_coefficient"]])
-     
+
+print("Generated csv file ...")     
 # txt file for describing the performance
 description = f"Baseline search engine: Google\nAssigned search engine for comparison: DuckDuckGo\n \n" \
               f"Average percentage overlap: {average_percentage_overlap}%\n" \
