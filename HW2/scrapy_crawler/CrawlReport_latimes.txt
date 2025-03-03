@@ -1,0 +1,38 @@
+Name: Komali Beeram
+USC ID: 9327372983
+News site crawled: latimes.com
+Number of threads: 7
+
+Fetch Statistics
+================
+# Fetches attempted: 19988
+# Fetches succeeded: 18325
+# Fetches failed or aborted: 1663
+
+Outgoing URLs:
+================
+Total URLs extracted: 4397929
+# Unique URLs extracted: 228565
+# Unique URLs within News Site: 59674
+# Unique URLs outside News Site: 168891
+
+Status Codes:
+================
+200 OK: 18325
+301 Moved Permanently: 1397
+302 Found (Moved Temporarily): 1
+404 Not Found: 265
+
+File Sizes:
+================
+< 1 KB: 138
+1 KB - 10 KB: 261
+10 KB - 100 KB: 783
+100 KB - 1 MB: 17096
+> 1 MB: 47
+
+Content Types:
+================
+text/html: 18324
+application/xml: 1
+
