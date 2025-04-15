@@ -1,43 +1,41 @@
-import os
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+from mrjob.protocol import RawValueProtocol
 import re
 from collections import defaultdict
 
-TARGET_BIGRAMS = {"computer science", "information retrieval","power politics", "los angeles", "bruce willis"}
+SELECTED_BIGRAMS = {"computer science", "information retrieval","power politics", "los angeles", "bruce willis"}
 
-#cleaning input data files
-def clean_text(text):
-    text = re.sub(r'[^a-z\s]', ' ', text.lower())
-    return text
+class MRBigramIndex(MRJob):
+    OUTPUT_PROTOCOL = RawValueProtocol
 
-#reading input files
-def parse_file(filepath):
-    with open(filepath, 'r', encoding='utf-8') as file:
-        for line in file:
-            if '\t' in line:
-                docID, content = line.strip().split('\t', 1)
-                yield docID, clean_text(content)
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper,reducer=self.reducer_counts),
+            MRStep(reducer=self.reducer_output)
+        ]
 
-#creating bigrams
-def selected_bigram_index(data_folder):
-    index = defaultdict(lambda: defaultdict(int))
-    
-    for filename in os.listdir(data_folder):
-        filepath = os.path.join(data_folder, filename)
-        print("scanning", filepath)
-        for docID, text in parse_file(filepath):
-            words = text.split()
-            bigrams = zip(words, words[1:])
-            for w1, w2 in bigrams:
-                bigram = f"{w1} {w2}"
-                if bigram in TARGET_BIGRAMS:
-                    index[bigram][docID] += 1
-        print("scanned", filepath)
+    def mapper(self, _, line):
+        if '\t' in line:
+            docID, content = line.strip().split('\t', 1)
+            content = re.sub(r'[^a-z\s]', ' ', content.lower())
+            words = content.split()
+            for i in range(len(words) - 1):
+                bigram = f"{words[i]} {words[i+1]}"
+                if bigram in SELECTED_BIGRAMS:
+                    yield (bigram, docID), 1
 
-    #printing all bigrams in the output file
-    os.makedirs('HW3/output', exist_ok=True)
-    with open('HW3/output/selected_bigram_index.txt', 'w') as f:
-        for bigram in sorted(index):
-            postings = [f"{doc}:{count}" for doc, count in sorted(index[bigram].items())]
-            f.write(f"{bigram} -> {', '.join(postings)}\n")
+    def reducer_counts(self, key, values):
+        bigram, docID = key
+        yield bigram, (docID, sum(values))
 
-selected_bigram_index('HW3/data/devdata')
+    def reducer_output(self, bigram, doc_counts):
+        count_dict = defaultdict(int)
+        for docID, count in doc_counts:
+            count_dict[docID] += count
+        
+        sorted_postings = sorted(count_dict.items())
+        postings_str = ', '.join(f"{doc}:{count}" for doc, count in sorted_postings)
+        yield None, f"{bigram} -> {postings_str}"
+
+MRBigramIndex.run()

@@ -1,38 +1,39 @@
-import os
+from mrjob.job import MRJob
+from mrjob.step import MRStep
+from mrjob.protocol import RawValueProtocol
 import re
 from collections import defaultdict
 
-#cleaning input data files
-def clean_text(text):
-    text = re.sub(r'[^a-z\s]', ' ', text.lower())
-    return text
+class MRUnigramIndex(MRJob):
+    OUTPUT_PROTOCOL = RawValueProtocol
 
-#reading input files
-def parse_file(filepath):
-    with open(filepath, 'r', encoding='utf-8') as file:
-        for line in file:
-            if '\t' in line:
-                docID, content = line.strip().split('\t', 1)
-                yield docID, clean_text(content)
+    def steps(self):
+        return [
+            MRStep(mapper=self.mapper, reducer=self.reducer_counts),
+            MRStep(reducer=self.reducer_output)
+        ]
 
-#creating unigrams 
-def unigram_index(data_folder):
-    index = defaultdict(lambda: defaultdict(int))
-    
-    for filename in os.listdir(data_folder):
-        filepath = os.path.join(data_folder, filename)
-        print("scanning", filepath)
-        for docID, text in parse_file(filepath):
-            for word in text.split():
-                index[word][docID] += 1
-        print("scanned", filepath)
-    
-    #printing all unigrams to output file
-    os.makedirs('HW3/output', exist_ok=True)
-    with open('HW3/output/unigram_index.txt', 'w') as f:
-        for word in sorted(index):
-            postings = [f"{doc}:{count}" for doc, count in sorted(index[word].items())]
-            f.write(f"{word} -> {', '.join(postings)}\n")
+    def mapper(self, _, line):
+        #clean data and split words
+        if '\t' in line:
+            docID, content = line.strip().split('\t', 1)
+            content = re.sub(r'[^a-z\s]', ' ', content.lower())
+            words = content.split()
+            for word in words:
+                yield (word, docID), 1
 
+    def reducer_counts(self, key, values):
+        word, docID = key
+        yield word, (docID, sum(values))
 
-unigram_index('HW3/data/fulldata')
+    def reducer_output(self, word, doc_counts):
+        #sort the doc ids and output to file
+        count_dict = defaultdict(int)
+        for docID, count in doc_counts:
+            count_dict[docID] += count
+        
+        sorted_postings = sorted(count_dict.items())
+        postings_str = ', '.join(f"{doc}:{count}" for doc, count in sorted_postings)
+        yield None, f"{word} -> {postings_str}"
+
+MRUnigramIndex.run()
